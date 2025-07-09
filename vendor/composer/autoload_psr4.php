@@ -6,5 +6,5 @@ $vendorDir = dirname(dirname(__FILE__));
 $baseDir = dirname($vendorDir);
 
 return array(
-    'coinsnap\\php-library\\' => array($baseDir . '/src'),
+    'Coinsnap\\PhpLibrary\\' => array($baseDir . '/src'),
 );

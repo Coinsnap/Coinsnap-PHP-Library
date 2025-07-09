@@ -3,18 +3,16 @@
     "description": "This API library is created for PHP developers to connect online store to Coinsnap payment gateway fast and easy",
     "type": "library",
     "license": "MIT",
-  "autoload": {
-    "psr-4": {
-      "coinsnap\\php-library\\": "src/"
-    }
-  },
+    "autoload": {
+        "psr-4": {
+            "Coinsnap\\PhpLibrary\\": "src/"
+        }
+    },
     "authors": [
         {
-        "name": "Coinsnap",
-      	"email": "dev@coinsnap.io"
+            "name": "coinsnap"
         }
     ],
-	"require": {
-            "php": ">=7.4"
-	}
+    "minimum-stability": "stable",
+    "require": {}
 }

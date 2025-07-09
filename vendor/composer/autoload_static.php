@@ -7,14 +7,14 @@ namespace Composer\Autoload;
 class ComposerStaticInita13b7c895f07ecbe520af789f3f8dec9
 {
     public static $prefixLengthsPsr4 = array (
-        'c' => 
+        'C' => 
         array (
-            'coinsnap\\php-library\\' => 21,
+            'Coinsnap\\PhpLibrary\\' => 20,
         ),
     );
 
     public static $prefixDirsPsr4 = array (
-        'coinsnap\\php-library\\' => 
+        'Coinsnap\\PhpLibrary\\' => 
         array (
             0 => __DIR__ . '/../..' . '/src',
         ),
