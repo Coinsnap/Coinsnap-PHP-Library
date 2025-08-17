@@ -18,7 +18,8 @@ class Store extends AbstractClient{
             $json_decode = json_decode($response->getBody(), true, 512, JSON_THROW_ON_ERROR);
             if(json_last_error() === JSON_ERROR_NONE) return new \Coinsnap\Result\Store($json_decode);
             else return new \Coinsnap\Result\Store(array('result' => false, 'error' => 'Coinsnap server is not available'));
-        } else {
+        }
+        else {
             throw $this->getExceptionByStatusCode($method, $url, (int)$response->getStatus(), $response->getBody());
         }
     }
