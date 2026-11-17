@@ -17,17 +17,29 @@ class CurlClient implements ClientInterface
     protected function initCurl(){
         // We cannot set a return type here as it is "resource" for PHP < 8 and CurlHandle for PHP >= 8.
         $ch = curl_init();
-        if ($ch && count($this->curlOptions)) {
-            curl_setopt_array($ch, $this->curlOptions);
+        if ($ch) {
+            curl_setopt_array($ch, [
+                CURLOPT_CONNECTTIMEOUT => 10,
+                CURLOPT_TIMEOUT => 30,
+            ]);
+            if (count($this->curlOptions)) {
+                curl_setopt_array($ch, $this->curlOptions);
+            }
+            // Always verify the server's TLS certificate, whatever setCurlOptions() was given:
+            // without it anyone between the site and the API can answer with a fake "paid" invoice.
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
         }
         return $ch;
     }
 
     /**
-     * Use this method if you need to set any special parameters like disable CURLOPT_SSL_VERIFYHOST and CURLOPT_SSL_VERIFYPEER.
+     * Set extra cURL options, e.g. a proxy, a timeout or a custom CA bundle (CURLOPT_CAINFO).
+     * CURLOPT_SSL_VERIFYPEER and CURLOPT_SSL_VERIFYHOST cannot be turned off: they are ignored.
      * @return void
      */
     public function setCurlOptions(array $options){
+        unset($options[CURLOPT_SSL_VERIFYPEER], $options[CURLOPT_SSL_VERIFYHOST]);
         $this->curlOptions = $options;
     }
 

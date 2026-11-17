@@ -19,12 +19,13 @@ class AbstractClient{
     /** @var ClientInterface */
     private $httpClient;
 
-    public function __construct(string $baseUrl, string $apiKey, ClientInterface $client = null)
+    public function __construct(string $baseUrl, string $apiKey, ?ClientInterface $client = null)
     {
         $this->baseUrl = rtrim($baseUrl, '/');
         $this->apiKey = $apiKey;
 
-        // Use the $client parameter to use a custom cURL client, for example if you need to disable CURLOPT_SSL_VERIFYHOST and CURLOPT_SSL_VERIFYPEER
+        // Use the $client parameter to use a custom HTTP client (e.g. with a proxy or a custom CA bundle).
+        // TLS certificate checks stay on: never disable CURLOPT_SSL_VERIFYPEER or CURLOPT_SSL_VERIFYHOST.
         if ($client === null) {
             $client = new CurlClient();
         }
