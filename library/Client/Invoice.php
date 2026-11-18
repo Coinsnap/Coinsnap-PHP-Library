@@ -1,7 +1,6 @@
 <?php
 declare(strict_types=1);
 namespace Coinsnap\Client;
-header('Access-Control-Allow-Origin: *');
 
 use Coinsnap\Result\InvoicePaymentMethod;
 use Coinsnap\Http\CurlClient;
@@ -161,6 +160,43 @@ class Invoice extends AbstractClient{
         }
     }
 
+    /**
+     * Fetch an invoice for a webhook handler, with the three outcomes kept apart:
+     *
+     *   - returns the invoice when the API has it;
+     *   - returns null when the API does not know it (Coinsnap replies 400, BTCPay 404),
+     *     e.g. the dashboard's "Send test webhook": reply 200 and stop;
+     *   - throws on a network error, a 5xx, a rejected API key or an unreadable answer:
+     *     reply 503 so the provider retries. Never treat this as "not found".
+     *
+     * @throws \Coinsnap\Exception\CSException
+     */
+    public function findInvoice(string $storeId, string $invoiceId): ?\Coinsnap\Result\Invoice {
+        if ($invoiceId === '') {
+            return null;
+        }
+        $url = $this->getApiUrl().''.COINSNAP_SERVER_PATH.'/'.rawurlencode($storeId).'/invoices/'.rawurlencode($invoiceId);
+        $method = 'GET';
+        $response = $this->getHttpClient()->request($method, $url, $this->getRequestHeaders());
+        $status = (int) $response->getStatus();
+
+        if ($status === 400 || $status === 404) {
+            return null;
+        }
+        if ($status !== 200) {
+            throw $this->getExceptionByStatusCode($method, $url, $status, $response->getBody());
+        }
+        $data = json_decode($response->getBody(), true);
+        if (!is_array($data)) {
+            throw $this->getExceptionByStatusCode($method, $url, $status, '');
+        }
+        return new \Coinsnap\Result\Invoice($data);
+    }
+
+    /**
+     * Throws on every non-200 answer, including "not found".
+     * In a webhook handler use findInvoice(), which tells "not found" apart from an API error.
+     */
     public function getInvoice(string $storeId,string $invoiceId): \Coinsnap\Result\Invoice {
 
         $url = $this->getApiUrl().''.COINSNAP_SERVER_PATH.'/'.urlencode($storeId).'/invoices/'.urlencode($invoiceId);

@@ -8,7 +8,34 @@ use Coinsnap\Client\Webhook as WebhookResult;
 class APIWebhook {
     public const WEBHOOK_EVENTS = ['New','Expired','Settled','Processing'];
 
-//  Get locally stored webhook data and check if it exists on the store.
+    /**
+     * Does the stored webhook still exist on the store, with the same URL?
+     *
+     * @param array|null $storedWebhook ['id' => ..., 'url' => ...] as saved when it was registered.
+     * @return bool true if it exists with that URL; false if it is gone, or its URL was changed.
+     * @throws \Coinsnap\Exception\CSException on a network or API error. Don't create a new webhook
+     *         then: that would replace the secret on every glitch. Try again later.
+     */
+    public static function checkWebhookExists(string $apiUrl, string $apiKey, string $storeId, ?array $storedWebhook = null, ?\Coinsnap\Http\ClientInterface $client = null): bool {
+        $id = is_array($storedWebhook) && is_string($storedWebhook['id'] ?? null) ? $storedWebhook['id'] : '';
+        $storedUrl = is_array($storedWebhook) && is_string($storedWebhook['url'] ?? null) ? $storedWebhook['url'] : '';
+        if ($id === '' || $storedUrl === '') {
+            return false;
+        }
+        $webhook = (new Webhook($apiUrl, $apiKey, $client))->findWebhook($storeId, $id);
+        if ($webhook === null) {
+            return false;
+        }
+        $data = $webhook->getData();
+        return ($data['id'] ?? null) === $id && is_string($data['url'] ?? null) && $data['url'] === $storedUrl;
+    }
+
+    /**
+     * Get locally stored webhook data and check if it exists on the store.
+     *
+     * @deprecated Returns false on any API or network error as well, so a caller that then registers
+     *             a new webhook replaces the secret on every glitch. Use checkWebhookExists().
+     */
     public static function webhookExists(string $apiUrl, string $apiKey, string $storeId, $storedWebhook = null): bool {
 	if ($storedWebhook) {
             try {
