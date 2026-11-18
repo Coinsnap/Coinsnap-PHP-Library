@@ -216,6 +216,10 @@ if (getenv('COINSNAP_TEST_NETWORK') === '1') {
     check('wrong host cert refused', $tlsRefused('https://wrong.host.badssl.com/'));
 }
 
+/* ---------- Result objects: array access works on PHP 7.4 too ---------- */
+$res = new \Coinsnap\Result\Invoice(['id' => 'inv1', 'status' => 'Settled']);
+check('Result array access returns value', (function () use ($res) { try { return $res['status'] === 'Settled' && $res['missing'] === null; } catch (\Throwable $e) { return false; } })());
+
 /* ---------- No global side effects when loading classes ---------- */
 check('Invoice.php sends no header', strpos((string) file_get_contents(__DIR__ . '/../library/Client/Invoice.php'), 'Access-Control-Allow-Origin') === false);
 
