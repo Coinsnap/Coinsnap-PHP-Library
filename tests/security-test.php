@@ -104,6 +104,30 @@ $h = new FakeHttp(new Response(200, $invoiceJson, []));
 check('ids are url-encoded in path', strpos($h->requests[0]['url'], '/stores/store%2F1/invoices/inv%3F1') !== false);
 check('x-api-key header sent', ($h->requests[0]['headers']['x-api-key'] ?? '') === 'key_abcd');
 
+/* ---------- Invoice::createInvoice: orderId, buyer and metadata reach both providers ---------- */
+$created = json_encode(['id' => 'inv_new', 'status' => 'New']);
+foreach (['Coinsnap' => 'https://app.coinsnap.io', 'BTCPay' => 'https://btcpay.example'] as $p => $base) {
+    $h = new FakeHttp(new Response(200, $created, []));
+    (new Invoice($base, 'k', $h))->createInvoice('store_1', 'EUR', \Coinsnap\Util\PreciseNumber::parseString('12.50'), 'ORD-42', 'buyer@example.com', 'Jane Doe', 'https://shop/return', null,
+        ['orderNumber' => '42', 'itemDesc' => 'Order 42', 'lineItems' => [['name' => 'Tee', 'quantity' => 2, 'price' => '6.25']]]);
+    $sent = json_decode($h->requests[0]['body'], true);
+    $m = $sent['metadata'] ?? [];
+    check("$p: top-level orderId", ($sent['orderId'] ?? null) === 'ORD-42');
+    check("$p: top-level buyerEmail", ($sent['buyerEmail'] ?? null) === 'buyer@example.com');
+    check("$p: metadata.orderId (BTCPay reads it only from metadata)", ($m['orderId'] ?? null) === 'ORD-42');
+    check("$p: metadata.buyerEmail (BTCPay reads it only from metadata)", ($m['buyerEmail'] ?? null) === 'buyer@example.com');
+    check("$p: metadata.customerName", ($m['customerName'] ?? null) === 'Jane Doe');
+    check("$p: caller's orderNumber not overwritten", ($m['orderNumber'] ?? null) === '42');
+    check("$p: arbitrary metadata passed through", ($m['itemDesc'] ?? null) === 'Order 42' && ($m['lineItems'][0]['quantity'] ?? null) === 2);
+    check("$p: checkout.redirectUrl", ($sent['checkout']['redirectUrl'] ?? null) === 'https://shop/return');
+}
+$h = new FakeHttp(new Response(200, $created, []));
+(new Invoice('https://x', 'k', $h))->createInvoice('s', 'EUR', \Coinsnap\Util\PreciseNumber::parseString('1'), 'ORD-1', null, null, null, null, ['orderId' => 'keep-me']);
+check("caller's metadata.orderId not overwritten", (json_decode($h->requests[0]['body'], true)['metadata']['orderId'] ?? null) === 'keep-me');
+$h = new FakeHttp(new Response(200, $created, []));
+check('no orderId, no metadata: no error', !throws(function () use ($h) { (new Invoice('https://x', 'k', $h))->createInvoice('s', 'EUR', \Coinsnap\Util\PreciseNumber::parseString('1')); }));
+check('no orderId, no metadata: metadata omitted', array_key_exists('metadata', json_decode($h->requests[0]['body'] ?? '{}', true)) && json_decode($h->requests[0]['body'], true)['metadata'] === null);
+
 /* ---------- Exception messages: no store ID, no body ---------- */
 try {
     $inv(new Response(500, '{"echo":"x-api-key: key_abcd"}', []))->findInvoice('store_SECRETID', 'inv_1');
